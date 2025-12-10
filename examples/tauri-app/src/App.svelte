@@ -399,9 +399,9 @@
       </div>
 
       <div class="action-row">
-        <button class="ghost" disabled={busy.ping} on:click={() => run('ping', pingHost)}>Ping command</button>
-        <button disabled={busy.availability} on:click={() => run('availability', refreshAvailability)}>get_availability</button>
-        <button disabled={busy.devices} on:click={() => run('devices', refreshDevices)}>get_devices</button>
+        <button class="ghost" disabled={busy.ping} onclick={() => run('ping', pingHost)}>Ping command</button>
+        <button disabled={busy.availability} onclick={() => run('availability', refreshAvailability)}>get_availability</button>
+        <button disabled={busy.devices} onclick={() => run('devices', refreshDevices)}>get_devices</button>
       </div>
 
       <div class="session-grid">
@@ -415,8 +415,8 @@
             <p class="muted">No device selected yet.</p>
           {/if}
           <div class="mini-buttons">
-            <button disabled={!currentDevice || busy.connect} on:click={() => run('connect', connectDevice)}>connect_gatt</button>
-            <button disabled={!currentDevice || busy.disconnect} on:click={() => run('disconnect', disconnectDevice)}>disconnect_gatt</button>
+            <button disabled={!currentDevice || busy.connect} onclick={() => run('connect', connectDevice)}>connect_gatt</button>
+            <button disabled={!currentDevice || busy.disconnect} onclick={() => run('disconnect', disconnectDevice)}>disconnect_gatt</button>
           </div>
         </article>
         <article>
@@ -468,7 +468,7 @@
         <input type="number" min="1000" step="500" bind:value={scanTimeoutMs} />
       </label>
 
-      <button class="primary" disabled={busy.request} on:click={() => run('request', requestNewDevice)}>request_device</button>
+      <button class="primary" disabled={busy.request} onclick={() => run('request', requestNewDevice)}>request_device</button>
     </section>
 
     <section class="panel span-2">
@@ -482,18 +482,19 @@
       {#if devices.length}
         <ul class="device-list">
           {#each devices as device}
-            <li class:selected={device.id === activeDeviceId}>
+            {@const deviceId = (device as BluetoothDevice).id}
+            <li class:selected={deviceId === activeDeviceId}>
               <div>
                 <strong>{device.name ?? 'Unnamed device'}</strong>
-                <div class="muted">{device.id}</div>
+                <div class="muted">{deviceId}</div>
                 <div class="meta">Connected: {device.connected ? 'yes' : 'no'} · Watching: {device.watchingAdvertisements ? 'yes' : 'no'}</div>
               </div>
               <div class="mini-buttons">
-                <button on:click={() => selectDevice(device)}>Use</button>
+                <button onclick={() => selectDevice(device)}>Use</button>
                 <button
                   class="ghost"
-                  disabled={busy[`forget-${device.id}`]}
-                  on:click={() => run(`forget-${device.id}`, () => forgetDeviceById(device.id))}
+                  disabled={busy['forget-' + deviceId]}
+                  onclick={() => run('forget-' + deviceId, () => forgetDeviceById(deviceId))}
                 >
                   forget_device
                 </button>
@@ -514,7 +515,7 @@
         </div>
         <div class="inline-controls">
           <input placeholder="Filter UUID (optional)" bind:value={primaryServiceFilter} />
-          <button disabled={busy.services} on:click={() => run('services', fetchServices)}>Fetch</button>
+          <button disabled={busy.services} onclick={() => run('services', fetchServices)}>Fetch</button>
         </div>
       </div>
 
@@ -570,9 +571,9 @@
       </div>
 
       <div class="action-row">
-        <button disabled={busy.characteristics} on:click={() => run('characteristics', fetchCharacteristics)}>get_characteristics</button>
-        <button disabled={busy.read} on:click={() => run('read', readCharacteristic)}>read_characteristic_value</button>
-        <button disabled={busy.write} on:click={() => run('write', writeCharacteristic)}>write_characteristic_value</button>
+        <button disabled={busy.characteristics} onclick={() => run('characteristics', fetchCharacteristics)}>get_characteristics</button>
+        <button disabled={busy.read} onclick={() => run('read', readCharacteristic)}>read_characteristic_value</button>
+        <button disabled={busy.write} onclick={() => run('write', writeCharacteristic)}>write_characteristic_value</button>
       </div>
 
       <div class="field">
@@ -596,8 +597,8 @@
       </div>
 
       <div class="action-row">
-        <button class="ghost" disabled={busy.startNotify} on:click={() => run('startNotify', startNotify)}>start_notifications</button>
-        <button class="ghost" disabled={busy.stopNotify} on:click={() => run('stopNotify', stopNotify)}>stop_notifications</button>
+        <button class="ghost" disabled={busy.startNotify} onclick={() => run('startNotify', startNotify)}>start_notifications</button>
+        <button class="ghost" disabled={busy.stopNotify} onclick={() => run('stopNotify', stopNotify)}>stop_notifications</button>
       </div>
 
       {#if lastRead}

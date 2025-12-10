@@ -20,9 +20,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsdown",
-    "prepare": "bun run build",
-    "example:dev": "bun run build && bun run --cwd ./examples/tauri-app dev"
+    "release": "tsdown",
+    "example:dev": "pnpm release && pnpm --dir ./examples/tauri-app dev"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0"
