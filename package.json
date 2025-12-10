@@ -19,11 +19,9 @@
     "dist-js",
     "README.md"
   ],
-  "workspaces": [
-    "examples/tauri-app"
-  ],
   "scripts": {
     "build": "tsdown",
+    "prepare": "bun run build",
     "example:dev": "bun run build && bun run --cwd ./examples/tauri-app dev"
   },
   "dependencies": {

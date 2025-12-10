@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
-    "tauri-plugin-web-bluetooth-api": "workspace:*"
+    "tauri-plugin-web-bluetooth-api": "file:../../"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^6.0.0",
