@@ -4,7 +4,7 @@ use tauri::{
   AppHandle, Runtime,
 };
 
-use crate::models::*;
+use crate::{models::*, Error, Result};
 
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_web_bluetooth);
@@ -13,7 +13,7 @@ tauri::ios_plugin_binding!(init_plugin_web_bluetooth);
 pub fn init<R: Runtime, C: DeserializeOwned>(
   _app: &AppHandle<R>,
   api: PluginApi<R, C>,
-) -> crate::Result<WebBluetooth<R>> {
+) -> Result<WebBluetooth<R>> {
   #[cfg(target_os = "android")]
   let handle = api.register_android_plugin("", "ExamplePlugin")?;
   #[cfg(target_os = "ios")]
@@ -25,10 +25,58 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct WebBluetooth<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> WebBluetooth<R> {
-  pub fn ping(&self, payload: PingRequest) -> crate::Result<PingResponse> {
+  pub fn ping(&self, payload: PingRequest) -> Result<PingResponse> {
     self
       .0
       .run_mobile_plugin("ping", payload)
       .map_err(Into::into)
+  }
+
+  pub async fn get_availability(&self) -> Result<bool> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn get_devices(&self) -> Result<Vec<BluetoothDevice>> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn request_device(&self, _options: RequestDeviceOptions) -> Result<BluetoothDevice> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn connect_gatt(&self, _request: DeviceRequest) -> Result<GattServerInfo> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn disconnect_gatt(&self, _request: DeviceRequest) -> Result<()> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn forget_device(&self, _request: DeviceRequest) -> Result<()> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn get_primary_services(&self, _request: ServiceRequest) -> Result<Vec<BluetoothService>> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn get_characteristics(&self, _request: CharacteristicsRequest) -> Result<Vec<BluetoothCharacteristic>> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn read_characteristic_value(&self, _request: ReadValueRequest) -> Result<BluetoothValue> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn write_characteristic_value(&self, _request: WriteValueRequest) -> Result<()> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn start_notifications(&self, _request: NotificationRequest) -> Result<()> {
+    Err(Error::UnsupportedPlatform)
+  }
+
+  pub async fn stop_notifications(&self, _request: NotificationRequest) -> Result<()> {
+    Err(Error::UnsupportedPlatform)
   }
 }

@@ -15,9 +15,15 @@ exclude = [
 links = "tauri-plugin-web-bluetooth"
 
 [dependencies]
+base64 = "0.22.1"
+btleplug = { version = "0.11.7", features = ["serde"] }
+futures = "0.3.31"
+log = "0.4.25"
+serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "2.9.5" }
-serde = "1.0"
 thiserror = "2"
+tokio = { version = "1.43.0", features = ["rt", "time"] }
+uuid = { version = "1.11.0", features = ["serde"] }
 
 [build-dependencies]
 tauri-plugin = { version = "2.5.2", features = ["build"] }

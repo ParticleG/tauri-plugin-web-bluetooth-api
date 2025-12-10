@@ -35,7 +35,7 @@ impl<R: Runtime, T: Manager<R>> crate::WebBluetoothExt<R> for T {
 /// Initializes the plugin.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
   Builder::new("web-bluetooth")
-    .invoke_handler(tauri::generate_handler![commands::ping])
+    .invoke_handler(commands::handlers())
     .setup(|app, api| {
       #[cfg(mobile)]
       let web_bluetooth = mobile::init(app, api)?;

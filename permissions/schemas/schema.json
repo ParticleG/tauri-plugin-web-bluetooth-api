@@ -295,6 +295,90 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the connect_gatt command.",
+          "type": "string",
+          "const": "allow-connect-gatt",
+          "markdownDescription": "Enables the connect_gatt command."
+        },
+        {
+          "description": "Denies the connect_gatt command.",
+          "type": "string",
+          "const": "deny-connect-gatt",
+          "markdownDescription": "Denies the connect_gatt command."
+        },
+        {
+          "description": "Enables the disconnect_gatt command.",
+          "type": "string",
+          "const": "allow-disconnect-gatt",
+          "markdownDescription": "Enables the disconnect_gatt command."
+        },
+        {
+          "description": "Denies the disconnect_gatt command.",
+          "type": "string",
+          "const": "deny-disconnect-gatt",
+          "markdownDescription": "Denies the disconnect_gatt command."
+        },
+        {
+          "description": "Enables the forget_device command.",
+          "type": "string",
+          "const": "allow-forget-device",
+          "markdownDescription": "Enables the forget_device command."
+        },
+        {
+          "description": "Denies the forget_device command.",
+          "type": "string",
+          "const": "deny-forget-device",
+          "markdownDescription": "Denies the forget_device command."
+        },
+        {
+          "description": "Enables the get_availability command.",
+          "type": "string",
+          "const": "allow-get-availability",
+          "markdownDescription": "Enables the get_availability command."
+        },
+        {
+          "description": "Denies the get_availability command.",
+          "type": "string",
+          "const": "deny-get-availability",
+          "markdownDescription": "Denies the get_availability command."
+        },
+        {
+          "description": "Enables the get_characteristics command.",
+          "type": "string",
+          "const": "allow-get-characteristics",
+          "markdownDescription": "Enables the get_characteristics command."
+        },
+        {
+          "description": "Denies the get_characteristics command.",
+          "type": "string",
+          "const": "deny-get-characteristics",
+          "markdownDescription": "Denies the get_characteristics command."
+        },
+        {
+          "description": "Enables the get_devices command.",
+          "type": "string",
+          "const": "allow-get-devices",
+          "markdownDescription": "Enables the get_devices command."
+        },
+        {
+          "description": "Denies the get_devices command.",
+          "type": "string",
+          "const": "deny-get-devices",
+          "markdownDescription": "Denies the get_devices command."
+        },
+        {
+          "description": "Enables the get_primary_services command.",
+          "type": "string",
+          "const": "allow-get-primary-services",
+          "markdownDescription": "Enables the get_primary_services command."
+        },
+        {
+          "description": "Denies the get_primary_services command.",
+          "type": "string",
+          "const": "deny-get-primary-services",
+          "markdownDescription": "Denies the get_primary_services command."
+        },
+        {
           "description": "Enables the ping command without any pre-configured scope.",
           "type": "string",
           "const": "allow-ping",
@@ -307,10 +391,70 @@
           "markdownDescription": "Denies the ping command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`",
+          "description": "Enables the read_characteristic_value command.",
+          "type": "string",
+          "const": "allow-read-characteristic-value",
+          "markdownDescription": "Enables the read_characteristic_value command."
+        },
+        {
+          "description": "Denies the read_characteristic_value command.",
+          "type": "string",
+          "const": "deny-read-characteristic-value",
+          "markdownDescription": "Denies the read_characteristic_value command."
+        },
+        {
+          "description": "Enables the request_device command.",
+          "type": "string",
+          "const": "allow-request-device",
+          "markdownDescription": "Enables the request_device command."
+        },
+        {
+          "description": "Denies the request_device command.",
+          "type": "string",
+          "const": "deny-request-device",
+          "markdownDescription": "Denies the request_device command."
+        },
+        {
+          "description": "Enables the start_notifications command.",
+          "type": "string",
+          "const": "allow-start-notifications",
+          "markdownDescription": "Enables the start_notifications command."
+        },
+        {
+          "description": "Denies the start_notifications command.",
+          "type": "string",
+          "const": "deny-start-notifications",
+          "markdownDescription": "Denies the start_notifications command."
+        },
+        {
+          "description": "Enables the stop_notifications command.",
+          "type": "string",
+          "const": "allow-stop-notifications",
+          "markdownDescription": "Enables the stop_notifications command."
+        },
+        {
+          "description": "Denies the stop_notifications command.",
+          "type": "string",
+          "const": "deny-stop-notifications",
+          "markdownDescription": "Denies the stop_notifications command."
+        },
+        {
+          "description": "Enables the write_characteristic_value command.",
+          "type": "string",
+          "const": "allow-write-characteristic-value",
+          "markdownDescription": "Enables the write_characteristic_value command."
+        },
+        {
+          "description": "Denies the write_characteristic_value command.",
+          "type": "string",
+          "const": "deny-write-characteristic-value",
+          "markdownDescription": "Denies the write_characteristic_value command."
+        },
+        {
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-get-availability`\n- `allow-get-devices`\n- `allow-request-device`\n- `allow-connect-gatt`\n- `allow-disconnect-gatt`\n- `allow-forget-device`\n- `allow-get-primary-services`\n- `allow-get-characteristics`\n- `allow-read-characteristic-value`\n- `allow-write-characteristic-value`\n- `allow-start-notifications`\n- `allow-stop-notifications`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-ping`\n- `allow-get-availability`\n- `allow-get-devices`\n- `allow-request-device`\n- `allow-connect-gatt`\n- `allow-disconnect-gatt`\n- `allow-forget-device`\n- `allow-get-primary-services`\n- `allow-get-characteristics`\n- `allow-read-characteristic-value`\n- `allow-write-characteristic-value`\n- `allow-start-notifications`\n- `allow-stop-notifications`"
         }
       ]
     }

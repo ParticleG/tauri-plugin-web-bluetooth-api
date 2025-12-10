@@ -6,6 +6,45 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
   #[error(transparent)]
   Io(#[from] std::io::Error),
+  #[error(transparent)]
+  Btleplug(#[from] btleplug::Error),
+  #[error(transparent)]
+  UuidParse(#[from] uuid::Error),
+  #[error(transparent)]
+  Base64Decode(#[from] base64::DecodeError),
+  #[error("Bluetooth adapter is not available on this system")]
+  NoAdapter,
+  #[error("Device {0} not found")]
+  DeviceNotFound(String),
+  #[error("Service {service_uuid} not found for device {device_id}")]
+  ServiceNotFound {
+    device_id: String,
+    service_uuid: String,
+  },
+  #[error("Characteristic {characteristic_uuid} not found for device {device_id}")]
+  CharacteristicNotFound {
+    device_id: String,
+    characteristic_uuid: String,
+  },
+  #[error("Descriptor {descriptor_uuid} not found for device {device_id}")]
+  DescriptorNotFound {
+    device_id: String,
+    descriptor_uuid: String,
+  },
+  #[error("{0}")]
+  InvalidRequest(String),
+  #[error("Notifications already active for {characteristic_uuid} on device {device_id}")]
+  NotificationsAlreadyActive {
+    device_id: String,
+    characteristic_uuid: String,
+  },
+  #[error("Notifications not active for {characteristic_uuid} on device {device_id}")]
+  NotificationsNotActive {
+    device_id: String,
+    characteristic_uuid: String,
+  },
+  #[error("Web Bluetooth is not implemented for this platform yet")]
+  UnsupportedPlatform,
   #[cfg(mobile)]
   #[error(transparent)]
   PluginInvoke(#[from] tauri::plugin::mobile::PluginInvokeError),
