@@ -4,13 +4,16 @@
   "author": "ParticleG <particle_g@outlook.com>",
   "description": "Tauri adapter for Web Bluetooth API",
   "type": "module",
-  "types": "./dist-js/index.d.ts",
+  "types": "./dist-js/index.d.mts",
   "main": "./dist-js/index.cjs",
-  "module": "./dist-js/index.js",
+  "module": "./dist-js/index.mjs",
   "exports": {
-    "types": "./dist-js/index.d.ts",
-    "import": "./dist-js/index.js",
-    "require": "./dist-js/index.cjs"
+    ".": {
+      "types": "./dist-js/index.d.mts",
+      "import": "./dist-js/index.mjs",
+      "require": "./dist-js/index.cjs"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist-js",
