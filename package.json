@@ -21,8 +21,7 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "prepublishOnly": "bun build",
-    "pretest": "bun build"
+    "example:dev": "bun run build && bun run --cwd ./examples/tauri-app dev"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0"
