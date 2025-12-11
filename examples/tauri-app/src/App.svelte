@@ -68,17 +68,17 @@
   let unlistenNotifications: (() => void) | null = null
   let unlistenDisconnect: (() => void) | null = null
 
-  const availabilityLabel = $derived(() => {
+  const availabilityLabel = $derived.by(() => {
     if (availability === null) return 'Adapter unknown'
     return availability ? 'Adapter ready' : 'Adapter unavailable'
   })
 
-  const availabilityStateClass = $derived(() => {
+  const availabilityStateClass = $derived.by(() => {
     if (availability === null) return 'pending'
     return availability ? 'online' : 'offline'
   })
 
-  const currentDevice = $derived<BluetoothDevice | null>(() => devices.find((device) => device.id === activeDeviceId) ?? null)
+  const currentDevice = $derived.by<BluetoothDevice | null>(() => devices.find((device) => device.id === activeDeviceId) ?? null)
 
   const parseList = (value: string) =>
     value
