@@ -26,6 +26,45 @@ fn main() {
 }
 ```
 
+#### 自定义设备选择器（桌面端）
+
+默认情况下，`request_device` 会立即返回首个匹配的外设。桌面端可以通过向插件传入 [`SelectionHandler`](src/desktop.rs) 来接管选择逻辑。仓库自带的 `NativeDialogSelectionHandler` 会弹出一个与 Chromium 原生选择框风格相似的 Tauri 窗口：
+
+```rust
+use tauri_plugin_web_bluetooth::{
+    init_with_selection_handler,
+    desktop::{NativeDialogSelectionHandler, SelectionHandler},
+};
+
+fn main() {
+    tauri::Builder::default()
+        .plugin(init_with_selection_handler(SelectionHandler::new(
+            NativeDialogSelectionHandler::new(),
+        )))
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+```
+
+若需要完全自定义的交互（例如只允许白名单设备、附加弹窗等），可以直接包装一个异步闭包：
+
+```rust
+use tauri_plugin_web_bluetooth::desktop::{DeviceSelectionContext, SelectionHandler};
+
+let custom_handler = SelectionHandler::new(|ctx: DeviceSelectionContext<_>| {
+    Box::pin(async move {
+        let preferred = ctx
+            .devices
+            .iter()
+            .find(|device| device.name.as_deref() == Some("My Sensor"))
+            .map(|device| device.id.clone());
+        Ok(preferred)
+    })
+});
+```
+
+当返回 `Ok(None)`（或使用内置对话框超时退出）时，前端会收到 `Error::SelectionCancelled` 以便告知用户操作被取消。
+
 ### 2. 使用 guest 端绑定
 
 将 `guest-js` 目录链接或复制到前端项目中，然后按需导入帮助函数：
@@ -60,7 +99,7 @@ await onCharacteristicValueChanged(({ value }) => {
 | --- | --- |
 | `get_availability` | 返回主机是否检测到蓝牙适配器。
 | `get_devices` | 列出通过 `request_device` 配对过的缓存设备。
-| `request_device` | 根据 Web Bluetooth 过滤条件扫描并返回首个匹配设备。
+| `request_device` | 根据 Web Bluetooth 过滤条件扫描，并由当前 `SelectionHandler` 决定返回哪个设备（默认仍是首个匹配）。
 | `connect_gatt` / `disconnect_gatt` | 连接或断开设备主 GATT 服务器。
 | `forget_device` | 移除某个缓存设备 ID。
 | `get_primary_services` | 列出主服务（可按 UUID 过滤）。
@@ -83,7 +122,7 @@ await onCharacteristicValueChanged(({ value }) => {
 ## 限制与路线图
 
 - 目前仅支持桌面平台（btleplug 的移动后端仍属实验阶段）。
-- `request_device` 会返回首个匹配外设；如果需要多选或持久化列表，请自行实现 UI。
+- `request_device` 的 UX 取决于应用传入的 `SelectionHandler`。如果需要更复杂的列表或多选，可以使用内置原生对话框或实现自定义 Handler。
 - Descriptor API 以及广播监控（advertisement watching）尚未实现。
 
 欢迎贡献！如果你发现实现与 Web Bluetooth 规范有差异，或遇到特定适配器的兼容性问题，请提交 Issue。

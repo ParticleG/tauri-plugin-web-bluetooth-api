@@ -1,6 +1,8 @@
 use std::{
   collections::{HashMap, HashSet},
-  sync::Arc,
+  future::Future,
+  pin::Pin,
+  sync::{Arc, Mutex as StdMutex},
   time::{Duration, Instant},
 };
 
@@ -14,13 +16,16 @@ use btleplug::{
   platform::{Adapter, Manager as BtleManager, Peripheral},
 };
 use futures::StreamExt;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Deserialize};
 use tauri::{
   async_runtime::{self, JoinHandle, Mutex, RwLock},
   plugin::PluginApi,
-  AppHandle, Emitter, Runtime,
+  AppHandle, Emitter, Listener, Runtime, Url, WebviewUrl, WebviewWindowBuilder,
 };
-use tokio::time::sleep;
+use tokio::{
+  sync::oneshot,
+  time::{sleep, timeout},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -29,10 +34,323 @@ use crate::{
 };
 
 const SCAN_POLL_INTERVAL: Duration = Duration::from_millis(300);
+const SELECTION_EVENT_PREFIX: &str = "web-bluetooth://select-bluetooth-device/";
+const SELECTION_WINDOW_PREFIX: &str = "web-bluetooth-selector-";
+const SELECTION_WINDOW_TITLE: &str = "Select Bluetooth Device";
+const SELECTION_RESPONSE_TIMEOUT: Duration = Duration::from_secs(30);
+
+type SelectionFuture = Pin<Box<dyn Future<Output = Result<Option<String>>> + Send>>;
+
+pub trait DeviceSelectionHandler<R: Runtime>: Send + Sync + 'static {
+  fn select(&self, ctx: DeviceSelectionContext<R>) -> SelectionFuture;
+  fn wants_full_scan(&self) -> bool {
+    false
+  }
+}
+
+impl<R: Runtime, F, Fut> DeviceSelectionHandler<R> for F
+where
+  F: Fn(DeviceSelectionContext<R>) -> Fut + Send + Sync + 'static,
+  Fut: Future<Output = Result<Option<String>>> + Send + 'static,
+{
+  fn select(&self, ctx: DeviceSelectionContext<R>) -> SelectionFuture {
+    Box::pin((self)(ctx))
+  }
+}
+
+pub struct SelectionHandler<R: Runtime> {
+  inner: Arc<dyn DeviceSelectionHandler<R>>,
+}
+
+impl<R: Runtime> SelectionHandler<R> {
+  pub fn new<H>(handler: H) -> Self
+  where
+    H: DeviceSelectionHandler<R>,
+  {
+    Self {
+      inner: Arc::new(handler),
+    }
+  }
+
+  pub fn select(&self, ctx: DeviceSelectionContext<R>) -> SelectionFuture {
+    self.inner.select(ctx)
+  }
+
+  pub fn wants_full_scan(&self) -> bool {
+    self.inner.wants_full_scan()
+  }
+}
+
+impl<R: Runtime> Clone for SelectionHandler<R> {
+  fn clone(&self) -> Self {
+    Self {
+      inner: self.inner.clone(),
+    }
+  }
+}
+
+impl<R: Runtime> Default for SelectionHandler<R> {
+  fn default() -> Self {
+    Self::new(FirstMatchSelectionHandler)
+  }
+}
+
+#[derive(Clone)]
+pub struct DeviceSelectionContext<R: Runtime> {
+  pub app: AppHandle<R>,
+  pub options: RequestDeviceOptions,
+  pub devices: Vec<BluetoothDevice>,
+}
+
+struct FirstMatchSelectionHandler;
+
+impl<R: Runtime> DeviceSelectionHandler<R> for FirstMatchSelectionHandler {
+  fn select(&self, ctx: DeviceSelectionContext<R>) -> SelectionFuture {
+    Box::pin(async move { Ok(ctx.devices.first().map(|device| device.id.clone())) })
+  }
+}
+
+pub struct NativeDialogSelectionHandler {
+  response_timeout: Duration,
+}
+
+impl NativeDialogSelectionHandler {
+  pub fn new() -> Self {
+    Self {
+      response_timeout: SELECTION_RESPONSE_TIMEOUT,
+    }
+  }
+
+  pub fn with_response_timeout(mut self, timeout: Duration) -> Self {
+    self.response_timeout = timeout;
+    self
+  }
+}
+
+impl Default for NativeDialogSelectionHandler {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
+impl<R: Runtime> DeviceSelectionHandler<R> for NativeDialogSelectionHandler {
+  fn select(&self, ctx: DeviceSelectionContext<R>) -> SelectionFuture {
+    let timeout_duration = self.response_timeout;
+    Box::pin(async move {
+      let request_id = Uuid::new_v4().to_string();
+      let event_name = format!("{SELECTION_EVENT_PREFIX}{request_id}");
+      let window_label = format!("{SELECTION_WINDOW_PREFIX}{request_id}");
+      let devices = ctx.devices.clone();
+      let app = ctx.app.clone();
+      let (tx, rx) = oneshot::channel();
+      let sender = Arc::new(StdMutex::new(Some(tx)));
+      let sender_handle = sender.clone();
+
+      let event_id = app.listen_any(event_name.clone(), move |event| {
+        if let Ok(message) = serde_json::from_str::<SelectionEventPayload>(event.payload()) {
+          if let Ok(mut guard) = sender_handle.lock() {
+            if let Some(sender) = guard.take() {
+              let _ = sender.send(message.device_id);
+            }
+          }
+        }
+      });
+
+      let page_url = match build_selection_window_url(&devices, &event_name) {
+        Ok(url) => url,
+        Err(err) => {
+          app.unlisten(event_id);
+          return Err(err);
+        }
+      };
+      let window = match WebviewWindowBuilder::new(&app, window_label.clone(), page_url)
+        .title(SELECTION_WINDOW_TITLE)
+        .inner_size(420.0, 520.0)
+        .resizable(false)
+        .visible(true)
+        .build()
+      {
+        Ok(window) => window,
+        Err(err) => {
+          app.unlisten(event_id);
+          return Err(err.into());
+        }
+      };
+
+      let selection = match timeout(timeout_duration, rx).await {
+        Ok(Ok(value)) => value,
+        _ => None,
+      };
+
+      app.unlisten(event_id);
+      let _ = window.close();
+
+      Ok(selection)
+    })
+  }
+
+  fn wants_full_scan(&self) -> bool {
+    true
+  }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SelectionEventPayload {
+  device_id: Option<String>,
+}
+
+fn build_selection_window_url(devices: &[BluetoothDevice], event_name: &str) -> Result<WebviewUrl> {
+  let devices_json = serde_json::to_string(devices)?;
+  let event_name_json = serde_json::to_string(event_name)?;
+  let html = format!(
+    r#"<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{title}</title>
+    <style>
+      :root {{
+        font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        color: #101828;
+        background-color: #f4f5f7;
+      }}
+      body {{
+        margin: 0;
+      }}
+      .container {{
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }}
+      h1 {{
+        font-size: 18px;
+        margin: 0;
+      }}
+      p {{
+        margin: 0;
+        color: #475467;
+      }}
+      .device-list {{
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }}
+      .device {{
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        background-color: #fff;
+        cursor: pointer;
+        text-align: left;
+      }}
+      .device:hover {{
+        border-color: #0082f6;
+        box-shadow: 0 0 0 2px rgba(0,130,246,0.15);
+      }}
+      .device-name {{
+        font-weight: 600;
+      }}
+      .device-meta {{
+        font-size: 12px;
+        color: #667085;
+      }}
+      #cancel-btn {{
+        border: none;
+        background: transparent;
+        color: #0082f6;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 8px;
+      }}
+      .empty {{
+        padding: 16px;
+        border: 1px dashed #d0d5dd;
+        border-radius: 8px;
+        text-align: center;
+        color: #667085;
+      }}
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div>
+        <h1>{title}</h1>
+        <p>Select a nearby Bluetooth device.</p>
+      </div>
+      <div id="device-list" class="device-list"></div>
+      <button id="cancel-btn" type="button">Cancel</button>
+    </div>
+    <script>
+      const DEVICES = {devices};
+      const EVENT_NAME = {event_name};
+      const {{ event, window: tauriWindow }} = window.__TAURI__ || {{}};
+      const current = tauriWindow?.getCurrent?.();
+
+      const emitSelection = async (deviceId) => {{
+        if (!event) return;
+        await event.emit(EVENT_NAME, {{ deviceId }});
+      }};
+
+      const closeWindow = () => current?.close?.();
+
+      const handleSelection = async (deviceId) => {{
+        await emitSelection(deviceId);
+        closeWindow();
+      }};
+
+      const list = document.getElementById('device-list');
+      if (!DEVICES.length) {{
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'No devices found yet...';
+        list.appendChild(empty);
+      }} else {{
+        DEVICES.forEach((device) => {{
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'device';
+          button.innerHTML = `
+            <span class="device-name">${{device.name ?? 'Unnamed Device'}}</span>
+            <span class="device-meta">${{device.id}}</span>
+          `;
+          button.addEventListener('click', () => handleSelection(device.id));
+          list.appendChild(button);
+        }});
+      }}
+
+      document.getElementById('cancel-btn').addEventListener('click', () => handleSelection(null));
+      window.addEventListener('keydown', (evt) => {{
+        if (evt.key === 'Escape') {{
+          handleSelection(null);
+        }}
+      }});
+      window.addEventListener('beforeunload', () => {{
+        emitSelection(null);
+      }});
+    </script>
+  </body>
+</html>
+"#,
+    title = SELECTION_WINDOW_TITLE,
+    devices = devices_json,
+    event_name = event_name_json,
+  );
+
+  let encoded = BASE64_STANDARD.encode(html);
+  let data_url = format!("data:text/html;base64,{encoded}");
+  let url = Url::parse(&data_url).map_err(|err| Error::InvalidRequest(err.to_string()))?;
+  Ok(WebviewUrl::External(url))
+}
 
 pub fn init<R: Runtime, C: DeserializeOwned>(
   app: &AppHandle<R>,
   _api: PluginApi<R, C>,
+  selection_handler: SelectionHandler<R>,
 ) -> Result<WebBluetooth<R>> {
   let app_handle = app.clone();
   let (manager, adapter, adapter_index) = async_runtime::block_on(async move {
@@ -45,7 +363,13 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
     Ok::<_, Error>((manager, adapter, 0usize))
   })?;
 
-  Ok(WebBluetooth::new(app_handle, manager, adapter, adapter_index))
+  Ok(WebBluetooth::new(
+    app_handle,
+    manager,
+    adapter,
+    adapter_index,
+    selection_handler,
+  ))
 }
 
 /// Access to the web-bluetooth APIs.
@@ -60,10 +384,17 @@ struct WebBluetoothState<R: Runtime> {
   adapter_index: usize,
   peripherals: RwLock<HashMap<String, Peripheral>>,
   notification_tasks: Arc<Mutex<HashMap<String, JoinHandle<()>>>>,
+  selection_handler: SelectionHandler<R>,
 }
 
 impl<R: Runtime> WebBluetooth<R> {
-  fn new(app: AppHandle<R>, manager: BtleManager, adapter: Adapter, adapter_index: usize) -> Self {
+  fn new(
+    app: AppHandle<R>,
+    manager: BtleManager,
+    adapter: Adapter,
+    adapter_index: usize,
+    selection_handler: SelectionHandler<R>,
+  ) -> Self {
     let state = Arc::new(WebBluetoothState {
       app,
       manager,
@@ -71,6 +402,7 @@ impl<R: Runtime> WebBluetooth<R> {
       adapter_index,
       peripherals: RwLock::new(HashMap::new()),
       notification_tasks: Arc::new(Mutex::new(HashMap::new())),
+      selection_handler,
     });
     state.spawn_event_listener();
     Self { inner: state }
@@ -103,35 +435,65 @@ impl<R: Runtime> WebBluetooth<R> {
   }
 
   pub async fn request_device(&self, options: RequestDeviceOptions) -> Result<BluetoothDevice> {
+    let request_options = options.clone();
     let normalized = NormalizedRequestDeviceOptions::try_from(options)?;
     let adapter = self.inner.adapter.clone();
     adapter.start_scan(ScanFilter::default()).await?;
     let deadline = Instant::now() + normalized.scan_timeout;
-    let mut matched: Option<Peripheral> = None;
+    let require_full_scan = self.inner.selection_handler.wants_full_scan();
+    let mut matched: HashMap<String, Peripheral> = HashMap::new();
     while Instant::now() < deadline {
       let peripherals = adapter.peripherals().await?;
       for peripheral in peripherals {
         if let Some(properties) = peripheral.properties().await? {
           if normalized.matches(&properties) {
-            matched = Some(peripheral.clone());
-            break;
+            let device_id = peripheral_key(&peripheral);
+            if matched.contains_key(&device_id) {
+              continue;
+            }
+            {
+              let mut cache = self.inner.peripherals.write().await;
+              cache.entry(device_id.clone()).or_insert_with(|| peripheral.clone());
+            }
+            matched.insert(device_id, peripheral);
           }
         }
       }
-      if matched.is_some() {
+      if !require_full_scan && !matched.is_empty() {
         break;
       }
       sleep(SCAN_POLL_INTERVAL).await;
     }
     adapter.stop_scan().await.ok();
 
-    let peripheral = matched.ok_or_else(|| Error::DeviceNotFound("No devices matched the provided filters".into()))?;
-    let device_id = peripheral_key(&peripheral);
-    {
-      let mut cache = self.inner.peripherals.write().await;
-      cache.insert(device_id.clone(), peripheral.clone());
+    if matched.is_empty() {
+      return Err(Error::DeviceNotFound("No devices matched the provided filters".into()));
     }
-    self.describe_device(&peripheral).await
+
+    let matched_peripherals: Vec<Peripheral> = matched.into_values().collect();
+    let mut devices = Vec::with_capacity(matched_peripherals.len());
+    for peripheral in &matched_peripherals {
+      devices.push(self.describe_device(peripheral).await?);
+    }
+
+    let context = DeviceSelectionContext {
+      app: self.inner.app.clone(),
+      options: request_options,
+      devices: devices.clone(),
+    };
+    let selected_id = self
+      .inner
+      .selection_handler
+      .select(context)
+      .await?
+      .ok_or(Error::SelectionCancelled)?;
+
+    let selected_device = devices
+      .into_iter()
+      .find(|device| device.id == selected_id)
+      .ok_or_else(|| Error::DeviceNotFound(selected_id.clone()))?;
+
+    Ok(selected_device)
   }
 
   pub async fn connect_gatt(&self, request: DeviceRequest) -> Result<GattServerInfo> {

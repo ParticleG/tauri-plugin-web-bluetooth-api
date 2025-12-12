@@ -26,6 +26,45 @@ fn main() {
 }
 ```
 
+#### Customizing the device picker (desktop)
+
+By default `request_device` mirrors Chromium's "first matching device" behavior. On desktop targets you can install a custom picker by passing a [`SelectionHandler`](src/desktop.rs) when initializing the plugin. The crate ships with `NativeDialogSelectionHandler`, which renders a lightweight Tauri window styled after the Chromium chooser:
+
+```rust
+use tauri_plugin_web_bluetooth::{
+	init_with_selection_handler,
+	desktop::{NativeDialogSelectionHandler, SelectionHandler},
+};
+
+fn main() {
+	tauli::Builder::default()
+		.plugin(init_with_selection_handler(SelectionHandler::new(
+			NativeDialogSelectionHandler::new(),
+		)))
+		.run(tauri::generate_context!())
+		.expect("error while running tauri application");
+}
+```
+
+You can also plug in any async selection strategy by wrapping a closure:
+
+```rust
+use tauri_plugin_web_bluetooth::desktop::{DeviceSelectionContext, SelectionHandler};
+
+let custom_handler = SelectionHandler::new(|ctx: DeviceSelectionContext<_>| {
+	Box::pin(async move {
+		let preferred = ctx
+			.devices
+			.iter()
+			.find(|device| device.name.as_deref() == Some("Heart Rate"))
+			.map(|device| device.id.clone());
+		Ok(preferred)
+	})
+});
+```
+
+Return `Ok(None)` (or let the helper dialog time out) to signal a user cancellation, which surfaces as `Error::SelectionCancelled` on the frontend.
+
 ### 2. Use the guest bindings
 
 Bundle the TypeScript helper by linking the `guest-js` folder or copying it into your frontend project. Then import the functions you need:
@@ -60,7 +99,7 @@ All payloads that carry raw bytes (reads, writes, notifications) are base64-enco
 | --- | --- |
 | `get_availability` | Returns whether a Bluetooth adapter was detected on the host.
 | `get_devices` | Lists cached devices matched via `request_device`.
-| `request_device` | Scans for peripherals according to Web Bluetooth filters and returns the first match.
+| `request_device` | Scans for peripherals according to Web Bluetooth filters and yields the device selected by the active `SelectionHandler` (first match by default).
 | `connect_gatt` / `disconnect_gatt` | Connects or disconnects the device's primary GATT server.
 | `forget_device` | Removes a cached device identifier.
 | `get_primary_services` | Lists primary services (optionally filter by UUID).
@@ -83,7 +122,7 @@ Events are broadcast to every window through the Tauri event system. Use the hel
 ## Limitations & roadmap
 
 - Desktop only (btleplug mobile back-ends are still experimental).
-- `request_device` returns the first matching peripheral; build your own UI if you need multi-select or persistent device lists.
+- `request_device` still relies on the host application's selection handler for advanced UX. Use the built-in native dialog or provide your own handler if you need multi-select or persistent device lists.
 - Descriptor APIs and advertisement watching are not implemented yet.
 
 Contributions are welcome! Please open an issue if you find gaps with the Web Bluetooth spec or run into adapter-specific quirks.

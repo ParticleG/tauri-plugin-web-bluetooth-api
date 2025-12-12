@@ -16,6 +16,8 @@ pub enum Error {
   NoAdapter,
   #[error("Device {0} not found")]
   DeviceNotFound(String),
+  #[error("Device selection was cancelled by the user")]
+  SelectionCancelled,
   #[error("Service {service_uuid} not found for device {device_id}")]
   ServiceNotFound {
     device_id: String,
@@ -33,6 +35,8 @@ pub enum Error {
   },
   #[error("{0}")]
   InvalidRequest(String),
+  #[error(transparent)]
+  Json(#[from] serde_json::Error),
   #[error("Notifications already active for {characteristic_uuid} on device {device_id}")]
   NotificationsAlreadyActive {
     device_id: String,
@@ -45,6 +49,8 @@ pub enum Error {
   },
   #[error("Web Bluetooth is not implemented for this platform yet")]
   UnsupportedPlatform,
+  #[error(transparent)]
+  Tauri(#[from] tauri::Error),
   #[cfg(mobile)]
   #[error(transparent)]
   PluginInvoke(#[from] tauri::plugin::mobile::PluginInvokeError),
