@@ -54,8 +54,10 @@ pub fn init_with_selection_handler<R: Runtime>(selection_handler: SelectionHandl
 }
 
 fn init_with_config<R: Runtime>(config: InitConfig<R>) -> TauriPlugin<R> {
-  Builder::new("web-bluetooth")
-    .invoke_handler(commands::handlers())
+  let builder = Builder::new("web-bluetooth").invoke_handler(commands::handlers());
+  #[cfg(desktop)]
+  let builder = desktop::register_selection_scheme_protocol(builder);
+  builder
     .setup(move |app, api| {
       #[cfg(mobile)]
       let web_bluetooth = mobile::init(app, api)?;
