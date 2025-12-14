@@ -46,6 +46,36 @@ fn main() {
 }
 ```
 
+要让内置选择器窗口顺利拉起并接收实时设备列表，请确认：
+
+1. `tauri.conf.json` 中启用了 `withGlobalTauri`，以便选择器页能够调用 `window.__TAURI__` 的事件 API：
+
+     ```jsonc
+     {
+         "app": {
+             "withGlobalTauri": true
+         }
+     }
+     ```
+
+2. 你的 capability（例如 `src-tauri/capabilities/default.json`）允许插件创建 `web-bluetooth-selector-*` 窗口并授予事件权限：
+
+     ```jsonc
+     {
+         "windows": [
+             "main",
+             "web-bluetooth-selector-*"
+         ],
+         "permissions": [
+             "core:default",
+             "core:event:default",
+             "web-bluetooth:default"
+         ]
+     }
+     ```
+
+插件会自动注册 `web-bluetooth-selector://` 自定义协议并缓存 HTML，不需要再手动注入资源。
+
 若需要完全自定义的交互（例如只允许白名单设备、附加弹窗等），可以直接包装一个异步闭包：
 
 ```rust

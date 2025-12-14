@@ -46,6 +46,36 @@ fn main() {
 }
 ```
 
+To ensure the native chooser can call into the Tauri bridge and receive streaming scan updates you must:
+
+1. Set `withGlobalTauri` to `true` in `tauri.conf.json` so the dialog can access `window.__TAURI__`:
+
+	 ```jsonc
+	 {
+		 "app": {
+			 "withGlobalTauri": true
+		 }
+	 }
+	 ```
+
+2. Allow the plugin to spawn `web-bluetooth-selector-*` windows (and grant event permissions) inside your capability definition, e.g. `src-tauri/capabilities/default.json`:
+
+	 ```jsonc
+	 {
+		 "windows": [
+			 "main",
+			 "web-bluetooth-selector-*"
+		 ],
+		 "permissions": [
+			 "core:default",
+			 "core:event:default",
+			 "web-bluetooth:default"
+		 ]
+	 }
+	 ```
+
+The plugin registers the `web-bluetooth-selector://` protocol and manages the dialog HTML internally, so no extra asset wiring is required.
+
 You can also plug in any async selection strategy by wrapping a closure:
 
 ```rust
