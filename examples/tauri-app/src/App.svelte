@@ -512,18 +512,15 @@
             <p class="panel-eyebrow">Adapter</p>
             <h2>Session quick actions</h2>
           </div>
-          <span
-            class={`chip ${availability === null ? "chip-muted" : availability ? "chip-ok" : "chip-warn"}`}
-            >{availabilityLabel}</span
-          >
         </div>
 
         <div class="action-row">
           <button
             disabled={busy.availability}
             onclick={() => run("availability", refreshAvailability)}
-            >get_availability</button
           >
+            Refresh "get_availability()"
+          </button>
           <button
             disabled={busy.devices}
             onclick={() => run("devices", refreshDevices)}>get_devices</button
