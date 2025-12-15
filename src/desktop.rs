@@ -747,10 +747,6 @@ impl<R: Runtime> WebBluetooth<R> {
               if matched.contains_key(&device_id) {
                 continue;
               }
-              {
-                let mut cache = self.inner.peripherals.write().await;
-                cache.entry(device_id.clone()).or_insert_with(|| peripheral.clone());
-              }
               log::info!(
                 "Full scan match | device_id={} | name={:?}",
                 device_id,
@@ -769,7 +765,7 @@ impl<R: Runtime> WebBluetooth<R> {
         return Err(Error::DeviceNotFound("No devices matched the provided filters".into()));
       }
 
-      let matched_peripherals: Vec<Peripheral> = matched.into_values().collect();
+      let matched_peripherals: Vec<Peripheral> = matched.values().cloned().collect();
       let mut devices = Vec::with_capacity(matched_peripherals.len());
       for peripheral in &matched_peripherals {
         devices.push(self.describe_device(peripheral).await?);
@@ -796,6 +792,11 @@ impl<R: Runtime> WebBluetooth<R> {
         .into_iter()
         .find(|device| device.id == selected_id)
         .ok_or_else(|| Error::DeviceNotFound(selected_id.clone()))?;
+
+      if let Some(selected_peripheral) = matched.remove(&selected_id) {
+        let mut cache = self.inner.peripherals.write().await;
+        cache.insert(selected_id.clone(), selected_peripheral);
+      }
 
       return Ok(selected_device);
     }
@@ -832,10 +833,6 @@ impl<R: Runtime> WebBluetooth<R> {
             let device_id = peripheral_key(&peripheral);
             if matched.contains_key(&device_id) {
               continue;
-            }
-            {
-              let mut cache = self.inner.peripherals.write().await;
-              cache.entry(device_id.clone()).or_insert_with(|| peripheral.clone());
             }
             matched.insert(device_id.clone(), peripheral.clone());
             devices.push(self.describe_device(&peripheral).await?);
@@ -888,6 +885,11 @@ impl<R: Runtime> WebBluetooth<R> {
       .into_iter()
       .find(|device| device.id == selected_id)
       .ok_or_else(|| Error::DeviceNotFound(selected_id.clone()))?;
+
+    if let Some(selected_peripheral) = matched.remove(&selected_id) {
+      let mut cache = self.inner.peripherals.write().await;
+      cache.insert(selected_id.clone(), selected_peripheral);
+    }
 
     log::info!("Device selected | device_id={} | name={:?}", selected_device.id, selected_device.name);
     Ok(selected_device)
