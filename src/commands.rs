@@ -4,11 +4,6 @@ use crate::models::*;
 use crate::{Result, WebBluetoothExt};
 
 #[command]
-pub(crate) async fn ping<R: Runtime>(app: AppHandle<R>, payload: PingRequest) -> Result<PingResponse> {
-    app.web_bluetooth().ping(payload)
-}
-
-#[command]
 pub(crate) async fn get_availability<R: Runtime>(app: AppHandle<R>) -> Result<bool> {
     app.web_bluetooth().get_availability().await
 }
@@ -91,7 +86,6 @@ pub(crate) async fn stop_notifications<R: Runtime>(
 
 pub(crate) fn handlers<R: Runtime>() -> impl Fn(tauri::ipc::Invoke<R>) -> bool {
     tauri::generate_handler![
-        ping,
         get_availability,
         get_devices,
         request_device,

@@ -11,13 +11,6 @@ const call = async <T>(command: string, payload?: Record<string, unknown>): Prom
   return invoke<T>(`${NAMESPACE}|${command}`, payload ?? {})
 }
 
-export async function ping(value: string): Promise<string | null> {
-  const response = await call<{ value?: string }>('ping', {
-    payload: { value },
-  })
-  return response.value ?? null
-}
-
 export async function getAvailability(): Promise<boolean> {
   return call<boolean>('get_availability')
 }

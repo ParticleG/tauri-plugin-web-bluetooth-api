@@ -690,12 +690,6 @@ impl<R: Runtime> WebBluetooth<R> {
     Self { inner: state }
   }
 
-  pub fn ping(&self, payload: PingRequest) -> Result<PingResponse> {
-    Ok(PingResponse {
-      value: payload.value,
-    })
-  }
-
   pub async fn get_availability(&self) -> Result<bool> {
     Ok(!self
       .inner

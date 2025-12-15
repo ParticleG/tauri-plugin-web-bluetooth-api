@@ -25,13 +25,6 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct WebBluetooth<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> WebBluetooth<R> {
-  pub fn ping(&self, payload: PingRequest) -> Result<PingResponse> {
-    self
-      .0
-      .run_mobile_plugin("ping", payload)
-      .map_err(Into::into)
-  }
-
   pub async fn get_availability(&self) -> Result<bool> {
     Err(Error::UnsupportedPlatform)
   }
