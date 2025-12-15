@@ -47,6 +47,13 @@ textarea {
   gap: 2rem;
 }
 
+.content-with-log {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
 .hero {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -403,11 +410,6 @@ details pre {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
-  max-height: 420px;
-  overflow: auto;
 }
 
 .log-panel .log {
@@ -446,6 +448,54 @@ details pre {
   overflow-x: auto;
 }
 
+.log-drawer {
+  position: sticky;
+  top: 1.5rem;
+  height: calc(100vh - 4rem);
+  max-height: calc(100vh - 4rem);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.log-drawer-head {
+  align-items: flex-start;
+}
+
+.log-scroll {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding-right: 0.25rem;
+}
+
+.log-scroll ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.log-toggle {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 35;
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.close-log {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .hero {
     flex-direction: column;
@@ -453,5 +503,55 @@ details pre {
 
   .grid .span-2 {
     grid-column: span 1;
+  }
+}
+
+@media (max-width: 1100px) {
+  .content-with-log {
+    grid-template-columns: 1fr;
+  }
+
+  .log-drawer {
+    position: fixed;
+    inset: 1rem;
+    height: calc(100vh - 2rem);
+    max-height: none;
+    transform: translateX(110%);
+    transition: transform 0.25s ease, opacity 0.2s ease;
+    z-index: 40;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border-radius: 18px;
+    background: rgba(2, 6, 23, 0.95);
+  }
+
+  .log-drawer.open {
+    transform: translateX(0);
+  }
+
+  .log-drawer-head {
+    position: sticky;
+    top: 0;
+    padding-bottom: 0.5rem;
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.95), rgba(2, 6, 23, 0.85));
+    z-index: 1;
+  }
+
+  .log-toggle {
+    display: inline-flex;
+  }
+
+  .close-log {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 1101px) {
+  .log-drawer {
+    transform: none;
+  }
+
+  .log-toggle,
+  .close-log {
+    display: none;
   }
 }

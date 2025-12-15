@@ -64,6 +64,7 @@
   let logEntries: ActivityLog[] = $state([])
   let busy: Record<string, boolean> = $state({})
   let logCounter = 0
+  let logDrawerOpen = $state(false)
 
   let unlistenNotifications: (() => void) | null = null
   let unlistenDisconnect: (() => void) | null = null
@@ -388,7 +389,8 @@
     </div>
   </header>
 
-  <section class="grid">
+  <div class="content-with-log">
+    <section class="grid">
     <section class="panel span-2">
       <div class="panel-heading">
         <div>
@@ -626,31 +628,38 @@
       {/if}
     </section>
 
-    <section class="panel span-2 log-panel">
-      <div class="panel-heading">
+    </section>
+
+    <aside class={`panel log-panel log-drawer ${logDrawerOpen ? 'open' : ''}`}>
+      <div class="panel-heading log-drawer-head">
         <div>
           <p class="panel-eyebrow">Command & event log</p>
           <h2>Trace every payload</h2>
         </div>
+        <button class="ghost close-log" onclick={() => (logDrawerOpen = false)}>Close</button>
       </div>
 
-      {#if logEntries.length}
-        <ul>
-          {#each logEntries as entry}
-            <li class={`log ${entry.intent}`}>
-              <div class="log-head">
-                <span>{entry.ts}</span>
-                <strong>{entry.label}</strong>
-              </div>
-              {#if entry.payload}
-                <pre>{entry.payload}</pre>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-      {:else}
-        <p class="muted">Commands will appear here as you interact with the UI.</p>
-      {/if}
-    </section>
-  </section>
+      <div class="log-scroll">
+        {#if logEntries.length}
+          <ul>
+            {#each logEntries as entry}
+              <li class={`log ${entry.intent}`}>
+                <div class="log-head">
+                  <span>{entry.ts}</span>
+                  <strong>{entry.label}</strong>
+                </div>
+                {#if entry.payload}
+                  <pre>{entry.payload}</pre>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="muted">Commands will appear here as you interact with the UI.</p>
+        {/if}
+      </div>
+    </aside>
+
+    <button class="log-toggle ghost" onclick={() => (logDrawerOpen = true)}>View log</button>
+  </div>
 </main>
