@@ -26,15 +26,15 @@
     "example:dev": "pnpm release && pnpm --dir ./examples/tauri-app dev"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.0.0"
+    "@tauri-apps/api": "^2.9.0"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^6.21.0",
-    "@typescript-eslint/parser": "^6.21.0",
-    "eslint": "^8.57.1",
-    "eslint-config-prettier": "^9.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.16.0",
+    "@typescript-eslint/parser": "^8.16.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.0.0",
     "prettier": "^3.7.4",
-    "tsdown": "^0.17.2",
-    "typescript": "^5.3.3"
+    "tsdown": "^0.17.0",
+    "typescript": "^5.9.0"
   }
 }
