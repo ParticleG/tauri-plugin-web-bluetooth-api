@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount } from 'svelte';
   import {
     getAvailability,
     getDevices,
@@ -22,9 +22,9 @@
     type RequestDeviceOptions,
     type NotificationEventPayload,
     type DeviceEventPayload,
-  } from "tauri-plugin-web-bluetooth-api";
+  } from 'tauri-plugin-web-bluetooth-api';
 
-  type ActivityIntent = "info" | "error" | "event";
+  type ActivityIntent = 'info' | 'error' | 'event';
 
   interface ActivityLog {
     id: number;
@@ -42,23 +42,22 @@
   let activeDeviceId: string | null = $state(null);
   let services: BluetoothService[] = $state([]);
   let characteristics: BluetoothCharacteristic[] = $state([]);
-  let lastRead: { base64: string; utf8: string; hex: string } | null =
-    $state(null);
+  let lastRead: { base64: string; utf8: string; hex: string } | null = $state(null);
   let subscribedKeys: string[] = $state([]);
 
   let acceptAllDevices = $state(true);
-  let filterServicesInput = $state("");
-  let optionalServicesInput = $state("");
-  let filterName = $state("");
-  let filterNamePrefix = $state("");
+  let filterServicesInput = $state('');
+  let optionalServicesInput = $state('');
+  let filterName = $state('');
+  let filterNamePrefix = $state('');
   let scanTimeoutMs = $state(10000);
 
-  let primaryServiceFilter = $state("");
-  let workingServiceUuid = $state("");
-  let workingCharacteristicUuid = $state("");
+  let primaryServiceFilter = $state('');
+  let workingServiceUuid = $state('');
+  let workingCharacteristicUuid = $state('');
 
-  let writeValue = $state("");
-  let writeMode = $state<"text" | "base64" | "hex">("text");
+  let writeValue = $state('');
+  let writeMode = $state<'text' | 'base64' | 'hex'>('text');
   let withResponse = $state(true);
 
   let logEntries: ActivityLog[] = $state([]);
@@ -70,22 +69,22 @@
   let unlistenDisconnect: (() => void) | null = null;
 
   const availabilityLabel = $derived.by(() => {
-    if (availability === null) return "Adapter unknown";
-    return availability ? "Adapter ready" : "Adapter unavailable";
+    if (availability === null) return 'Adapter unknown';
+    return availability ? 'Adapter ready' : 'Adapter unavailable';
   });
 
   const availabilityStateClass = $derived.by(() => {
-    if (availability === null) return "pending";
-    return availability ? "online" : "offline";
+    if (availability === null) return 'pending';
+    return availability ? 'online' : 'offline';
   });
 
   const currentDevice = $derived.by<BluetoothDevice | null>(
-    () => devices.find((device) => device.id === activeDeviceId) ?? null
+    () => devices.find((device) => device.id === activeDeviceId) ?? null,
   );
 
   const parseList = (value: string) =>
     value
-      .split(",")
+      .split(',')
       .map((item) => item.trim())
       .filter(Boolean);
 
@@ -93,25 +92,21 @@
     if (error instanceof Error) {
       return `${error.name}: ${error.message}`;
     }
-    if (typeof error === "string") {
+    if (typeof error === 'string') {
       return error;
     }
     try {
       return JSON.stringify(error);
     } catch {
-      return "Unknown error";
+      return 'Unknown error';
     }
   };
 
-  const log = (
-    label: string,
-    payload?: unknown,
-    intent: ActivityIntent = "info"
-  ) => {
+  const log = (label: string, payload?: unknown, intent: ActivityIntent = 'info') => {
     const formatted =
       payload === undefined
         ? undefined
-        : typeof payload === "string"
+        : typeof payload === 'string'
           ? payload
           : (() => {
               try {
@@ -143,7 +138,7 @@
     try {
       await task();
     } catch (error) {
-      log(`Command ${key} failed`, describeError(error), "error");
+      log(`Command ${key} failed`, describeError(error), 'error');
     } finally {
       setBusy(key, false);
     }
@@ -151,26 +146,23 @@
 
   const ensureDevice = () => {
     if (!activeDeviceId) {
-      throw new Error("Select or request a device first");
+      throw new Error('Select or request a device first');
     }
     return activeDeviceId;
   };
 
   const refreshAvailability = async () => {
     availability = await getAvailability();
-    log("get_availability", { availability });
+    log('get_availability', { availability });
   };
 
   const refreshDevices = async () => {
     const result = await getDevices();
     devices = result;
-    if (
-      activeDeviceId &&
-      !result.some((device) => device.id === activeDeviceId)
-    ) {
+    if (activeDeviceId && !result.some((device) => device.id === activeDeviceId)) {
       activeDeviceId = null;
     }
-    log("get_devices", result);
+    log('get_devices', result);
   };
 
   const requestNewDevice = async () => {
@@ -191,9 +183,7 @@
       : [];
 
     if (!acceptAllDevices && !filters.length) {
-      throw new Error(
-        'Provide at least one filter or enable "Accept all devices"'
-      );
+      throw new Error('Provide at least one filter or enable "Accept all devices"');
     }
 
     const baseOptions: RequestDeviceOptions = {
@@ -212,19 +202,19 @@
 
   const selectDevice = (device: BluetoothDevice) => {
     activeDeviceId = device.id;
-    log("device_selected", device);
+    log('device_selected', device);
   };
 
   const connectDevice = async () => {
     const deviceId = ensureDevice();
     const info = await connectGATT(deviceId);
-    log("connect_gatt", info);
+    log('connect_gatt', info);
   };
 
   const disconnectDevice = async () => {
     const deviceId = ensureDevice();
     await disconnectGATT(deviceId);
-    log("disconnect_gatt", { deviceId });
+    log('disconnect_gatt', { deviceId });
   };
 
   const forgetDeviceById = async (deviceId: string) => {
@@ -233,29 +223,26 @@
       activeDeviceId = null;
     }
     await refreshDevices();
-    log("forget_device", { deviceId });
+    log('forget_device', { deviceId });
   };
 
   const fetchServices = async () => {
     const deviceId = ensureDevice();
-    services = await getPrimaryServices(
-      deviceId,
-      primaryServiceFilter || undefined
-    );
-    log("get_primary_services", services);
+    services = await getPrimaryServices(deviceId, primaryServiceFilter || undefined);
+    log('get_primary_services', services);
   };
 
   const fetchCharacteristics = async () => {
     const deviceId = ensureDevice();
     if (!workingServiceUuid) {
-      throw new Error("Set a Service UUID before loading characteristics");
+      throw new Error('Set a Service UUID before loading characteristics');
     }
     characteristics = await getCharacteristics(
       deviceId,
       workingServiceUuid,
-      workingCharacteristicUuid || undefined
+      workingCharacteristicUuid || undefined,
     );
-    log("get_characteristics", characteristics);
+    log('get_characteristics', characteristics);
   };
 
   const decodeValue = (value: string) => {
@@ -265,53 +252,53 @@
         try {
           return decoder.decode(bytes);
         } catch {
-          return "(failed to decode as UTF-8)";
+          return '(failed to decode as UTF-8)';
         }
       })();
       const hex = Array.from(bytes)
-        .map((byte) => byte.toString(16).padStart(2, "0"))
-        .join(" ");
+        .map((byte) => byte.toString(16).padStart(2, '0'))
+        .join(' ');
       return { utf8, hex };
     } catch (error) {
-      log("Base64 decode failed", describeError(error), "error");
-      return { utf8: "(decode error)", hex: "" };
+      log('Base64 decode failed', describeError(error), 'error');
+      return { utf8: '(decode error)', hex: '' };
     }
   };
 
   const readCharacteristic = async () => {
     const deviceId = ensureDevice();
     if (!workingServiceUuid || !workingCharacteristicUuid) {
-      throw new Error("Set Service and Characteristic before reading");
+      throw new Error('Set Service and Characteristic before reading');
     }
     const result = await readCharacteristicValue(
       deviceId,
       workingServiceUuid,
-      workingCharacteristicUuid
+      workingCharacteristicUuid,
     );
     const decoded = decodeValue(result.value);
     lastRead = { base64: result.value, ...decoded };
-    log("read_characteristic_value", { ...decoded, base64: result.value });
+    log('read_characteristic_value', { ...decoded, base64: result.value });
   };
 
   const encodeWritePayload = () => {
     const trimmed = writeValue.trim();
     if (!trimmed) {
-      throw new Error("Provide data before writing");
+      throw new Error('Provide data before writing');
     }
-    if (writeMode === "base64") {
+    if (writeMode === 'base64') {
       return trimmed;
     }
-    if (writeMode === "text") {
+    if (writeMode === 'text') {
       const buffer = encoder.encode(trimmed);
       return btoa(String.fromCharCode(...buffer));
     }
-    const sanitized = trimmed.replace(/[^0-9a-fA-F]/g, "");
+    const sanitized = trimmed.replace(/[^0-9a-fA-F]/g, '');
     if (sanitized.length === 0 || sanitized.length % 2 !== 0) {
-      throw new Error("Hex payload must contain an even number of digits");
+      throw new Error('Hex payload must contain an even number of digits');
     }
     const bytes = sanitized.match(/.{1,2}/g)?.map((pair) => parseInt(pair, 16));
     if (!bytes?.length) {
-      throw new Error("Invalid hex payload");
+      throw new Error('Invalid hex payload');
     }
     return btoa(String.fromCharCode(...bytes));
   };
@@ -319,7 +306,7 @@
   const writeCharacteristic = async () => {
     const deviceId = ensureDevice();
     if (!workingServiceUuid || !workingCharacteristicUuid) {
-      throw new Error("Set Service and Characteristic before writing");
+      throw new Error('Set Service and Characteristic before writing');
     }
     const payload = encodeWritePayload();
     await writeCharacteristicValue(
@@ -327,35 +314,28 @@
       workingServiceUuid,
       workingCharacteristicUuid,
       payload,
-      withResponse
+      withResponse,
     );
-    log("write_characteristic_value", {
+    log('write_characteristic_value', {
       withResponse,
       payloadMode: writeMode,
     });
   };
 
-  const subKey = (
-    deviceId: string,
-    serviceUuid: string,
-    characteristicUuid: string
-  ) => `${deviceId}|${serviceUuid}|${characteristicUuid}`;
+  const subKey = (deviceId: string, serviceUuid: string, characteristicUuid: string) =>
+    `${deviceId}|${serviceUuid}|${characteristicUuid}`;
 
   const startNotify = async () => {
     const deviceId = ensureDevice();
     if (!workingServiceUuid || !workingCharacteristicUuid) {
-      throw new Error("Set Service and Characteristic before subscribing");
+      throw new Error('Set Service and Characteristic before subscribing');
     }
-    await startNotifications(
-      deviceId,
-      workingServiceUuid,
-      workingCharacteristicUuid
-    );
+    await startNotifications(deviceId, workingServiceUuid, workingCharacteristicUuid);
     const key = subKey(deviceId, workingServiceUuid, workingCharacteristicUuid);
     if (!subscribedKeys.includes(key)) {
       subscribedKeys = [...subscribedKeys, key];
     }
-    log("start_notifications", {
+    log('start_notifications', {
       deviceId,
       serviceUuid: workingServiceUuid,
       characteristicUuid: workingCharacteristicUuid,
@@ -365,16 +345,12 @@
   const stopNotify = async () => {
     const deviceId = ensureDevice();
     if (!workingServiceUuid || !workingCharacteristicUuid) {
-      throw new Error("Set Service and Characteristic before unsubscribing");
+      throw new Error('Set Service and Characteristic before unsubscribing');
     }
-    await stopNotifications(
-      deviceId,
-      workingServiceUuid,
-      workingCharacteristicUuid
-    );
+    await stopNotifications(deviceId, workingServiceUuid, workingCharacteristicUuid);
     const key = subKey(deviceId, workingServiceUuid, workingCharacteristicUuid);
     subscribedKeys = subscribedKeys.filter((item) => item !== key);
-    log("stop_notifications", {
+    log('stop_notifications', {
       deviceId,
       serviceUuid: workingServiceUuid,
       characteristicUuid: workingCharacteristicUuid,
@@ -384,38 +360,34 @@
   const handleNotification = (payload: NotificationEventPayload) => {
     const decoded = decodeValue(payload.value);
     log(
-      "event characteristic_value_changed",
+      'event characteristic_value_changed',
       {
         ...payload,
         utf8: decoded.utf8,
         hex: decoded.hex,
       },
-      "event"
+      'event',
     );
   };
 
   const handleDisconnectEvent = (payload: DeviceEventPayload) => {
-    log("event gattserver_disconnected", payload, "event");
+    log('event gattserver_disconnected', payload, 'event');
     if (payload.deviceId === activeDeviceId) {
-      subscribedKeys = subscribedKeys.filter(
-        (key) => !key.startsWith(`${payload.deviceId}|`)
-      );
+      subscribedKeys = subscribedKeys.filter((key) => !key.startsWith(`${payload.deviceId}|`));
     }
   };
 
   const attachEventListeners = async () => {
     unlistenNotifications?.();
     unlistenDisconnect?.();
-    unlistenNotifications =
-      await onCharacteristicValueChanged(handleNotification);
+    unlistenNotifications = await onCharacteristicValueChanged(handleNotification);
     unlistenDisconnect = await onGattServerDisconnected(handleDisconnectEvent);
   };
 
   const isSubscribed = () => {
-    if (!activeDeviceId || !workingServiceUuid || !workingCharacteristicUuid)
-      return false;
+    if (!activeDeviceId || !workingServiceUuid || !workingCharacteristicUuid) return false;
     return subscribedKeys.includes(
-      subKey(activeDeviceId, workingServiceUuid, workingCharacteristicUuid)
+      subKey(activeDeviceId, workingServiceUuid, workingCharacteristicUuid),
     );
   };
 
@@ -423,7 +395,7 @@
     (async () => {
       await attachEventListeners();
       await Promise.allSettled([refreshAvailability(), refreshDevices()]);
-      log("Example UI ready");
+      log('Example UI ready');
     })();
 
     return () => {
@@ -439,8 +411,8 @@
       <p class="eyebrow">Tauri Plugin · Web Bluetooth</p>
       <h1>Bluetooth Playground</h1>
       <p>
-        Trigger every plugin command, inspect payloads, and watch events without
-        leaving this starter app.
+        Trigger every plugin command, inspect payloads, and watch events without leaving this
+        starter app.
       </p>
     </div>
     <div class="hero-status">
@@ -471,10 +443,7 @@
 
         <label class="field">
           <span>Optional services</span>
-          <input
-            placeholder="battery_service"
-            bind:value={optionalServicesInput}
-          />
+          <input placeholder="battery_service" bind:value={optionalServicesInput} />
         </label>
 
         <div class="field-pair">
@@ -490,19 +459,13 @@
 
         <label class="field">
           <span>Scan timeout (ms)</span>
-          <input
-            type="number"
-            min="1000"
-            step="500"
-            bind:value={scanTimeoutMs}
-          />
+          <input type="number" min="1000" step="500" bind:value={scanTimeoutMs} />
         </label>
 
         <button
           class="primary"
           disabled={busy.request}
-          onclick={() => run("request", requestNewDevice)}
-          >request_device</button
+          onclick={() => run('request', requestNewDevice)}>request_device</button
         >
       </section>
 
@@ -517,26 +480,26 @@
         <div class="action-row">
           <button
             disabled={busy.availability}
-            onclick={() => run("availability", refreshAvailability)}
+            onclick={() => run('availability', refreshAvailability)}
           >
-            Refresh "get_availability()"
+            Refresh with
+            <code>get_availability()</code>
           </button>
-          <button
-            disabled={busy.devices}
-            onclick={() => run("devices", refreshDevices)}>get_devices</button
-          >
+          <button disabled={busy.devices} onclick={() => run('devices', refreshDevices)}>
+            get_devices
+          </button>
         </div>
 
         <div class="session-grid">
           <article>
             <h3>Active device</h3>
             {#if currentDevice}
-              <p class="meta">{currentDevice.name ?? "Unnamed device"}</p>
+              <p class="meta">{currentDevice.name ?? 'Unnamed device'}</p>
               <p class="muted">{currentDevice.id}</p>
               <p class="pill-list">
                 Services: {currentDevice.uuids?.length ?? 0} · Connected: {currentDevice.connected
-                  ? "yes"
-                  : "no"}
+                  ? 'yes'
+                  : 'no'}
               </p>
             {:else}
               <p class="muted">No device selected yet.</p>
@@ -544,26 +507,23 @@
             <div class="mini-buttons">
               <button
                 disabled={!currentDevice || busy.connect}
-                onclick={() => run("connect", connectDevice)}
-                >connect_gatt</button
+                onclick={() => run('connect', connectDevice)}>connect_gatt</button
               >
               <button
                 disabled={!currentDevice || busy.disconnect}
-                onclick={() => run("disconnect", disconnectDevice)}
-                >disconnect_gatt</button
+                onclick={() => run('disconnect', disconnectDevice)}>disconnect_gatt</button
               >
             </div>
           </article>
           <article>
             <h3>Notifications</h3>
             <p class="muted">
-              Listeners for characteristic changes and GATT disconnects stay
-              attached.
+              Listeners for characteristic changes and GATT disconnects stay attached.
             </p>
-            <p class={`pill ${isSubscribed() ? "pill-live" : ""}`}>
+            <p class={`pill ${isSubscribed() ? 'pill-live' : ''}`}>
               {isSubscribed()
-                ? "Subscribed to current characteristic"
-                : "No active subscription for current selection"}
+                ? 'Subscribed to current characteristic'
+                : 'No active subscription for current selection'}
             </p>
           </article>
         </div>
@@ -579,27 +539,24 @@
 
         {#if devices.length}
           <ul class="device-list">
-            {#each devices as device}
+            {#each devices as device (device.id)}
               {@const deviceId = (device as BluetoothDevice).id}
               <li class:selected={deviceId === activeDeviceId}>
                 <div>
-                  <strong>{device.name ?? "Unnamed device"}</strong>
+                  <strong>{device.name ?? 'Unnamed device'}</strong>
                   <div class="muted">{deviceId}</div>
                   <div class="meta">
-                    Connected: {device.connected ? "yes" : "no"} · Watching: {device.watchingAdvertisements
-                      ? "yes"
-                      : "no"}
+                    Connected: {device.connected ? 'yes' : 'no'} · Watching: {device.watchingAdvertisements
+                      ? 'yes'
+                      : 'no'}
                   </div>
                 </div>
                 <div class="mini-buttons">
                   <button onclick={() => selectDevice(device)}>Use</button>
                   <button
                     class="ghost"
-                    disabled={busy["forget-" + deviceId]}
-                    onclick={() =>
-                      run("forget-" + deviceId, () =>
-                        forgetDeviceById(deviceId)
-                      )}
+                    disabled={busy['forget-' + deviceId]}
+                    onclick={() => run('forget-' + deviceId, () => forgetDeviceById(deviceId))}
                   >
                     forget_device
                   </button>
@@ -608,9 +565,7 @@
             {/each}
           </ul>
         {:else}
-          <p class="muted">
-            No cached devices yet. Request one to populate this list.
-          </p>
+          <p class="muted">No cached devices yet. Request one to populate this list.</p>
         {/if}
       </section>
 
@@ -621,30 +576,24 @@
             <h2>Services overview</h2>
           </div>
           <div class="inline-controls">
-            <input
-              placeholder="Filter UUID (optional)"
-              bind:value={primaryServiceFilter}
-            />
-            <button
-              disabled={busy.services}
-              onclick={() => run("services", fetchServices)}>Fetch</button
+            <input placeholder="Filter UUID (optional)" bind:value={primaryServiceFilter} />
+            <button disabled={busy.services} onclick={() => run('services', fetchServices)}
+              >Fetch</button
             >
           </div>
         </div>
 
         {#if services.length}
           <div class="service-grid">
-            {#each services as service}
+            {#each services as service (service.uuid)}
               <article>
                 <header>
                   <strong>{service.uuid}</strong>
-                  <span class="pill"
-                    >{service.isPrimary ? "primary" : "secondary"}</span
-                  >
+                  <span class="pill">{service.isPrimary ? 'primary' : 'secondary'}</span>
                 </header>
                 {#if service.characteristics?.length}
                   <ul>
-                    {#each service.characteristics as characteristic}
+                    {#each service.characteristics as characteristic (characteristic.uuid)}
                       <li>
                         <span>{characteristic.uuid}</span>
                         <span class="muted">
@@ -660,17 +609,14 @@
                   </ul>
                 {:else}
                   <p class="muted">
-                    No characteristics returned (use get_characteristics for
-                    more data).
+                    No characteristics returned (use get_characteristics for more data).
                   </p>
                 {/if}
               </article>
             {/each}
           </div>
         {:else}
-          <p class="muted">
-            No services loaded. Fetch to mirror the primary services call.
-          </p>
+          <p class="muted">No services loaded. Fetch to mirror the primary services call.</p>
         {/if}
       </section>
 
@@ -689,37 +635,26 @@
           </label>
           <label class="field">
             <span>Characteristic UUID</span>
-            <input
-              placeholder="characteristic uuid"
-              bind:value={workingCharacteristicUuid}
-            />
+            <input placeholder="characteristic uuid" bind:value={workingCharacteristicUuid} />
           </label>
         </div>
 
         <div class="action-row">
           <button
             disabled={busy.characteristics}
-            onclick={() => run("characteristics", fetchCharacteristics)}
-            >get_characteristics</button
+            onclick={() => run('characteristics', fetchCharacteristics)}>get_characteristics</button
           >
-          <button
-            disabled={busy.read}
-            onclick={() => run("read", readCharacteristic)}
+          <button disabled={busy.read} onclick={() => run('read', readCharacteristic)}
             >read_characteristic_value</button
           >
-          <button
-            disabled={busy.write}
-            onclick={() => run("write", writeCharacteristic)}
+          <button disabled={busy.write} onclick={() => run('write', writeCharacteristic)}
             >write_characteristic_value</button
           >
         </div>
 
         <div class="field">
           <span>Write payload</span>
-          <textarea
-            rows="3"
-            placeholder="Type raw text, base64, or hex"
-            bind:value={writeValue}
+          <textarea rows="3" placeholder="Type raw text, base64, or hex" bind:value={writeValue}
           ></textarea>
         </div>
 
@@ -742,14 +677,12 @@
           <button
             class="ghost"
             disabled={busy.startNotify}
-            onclick={() => run("startNotify", startNotify)}
-            >start_notifications</button
+            onclick={() => run('startNotify', startNotify)}>start_notifications</button
           >
           <button
             class="ghost"
             disabled={busy.stopNotify}
-            onclick={() => run("stopNotify", stopNotify)}
-            >stop_notifications</button
+            onclick={() => run('stopNotify', stopNotify)}>stop_notifications</button
           >
         </div>
 
@@ -779,21 +712,19 @@
       </section>
     </section>
 
-    <aside class={`panel log-panel log-drawer ${logDrawerOpen ? "open" : ""}`}>
+    <aside class={`panel log-panel log-drawer ${logDrawerOpen ? 'open' : ''}`}>
       <div class="panel-heading log-drawer-head">
         <div>
           <p class="panel-eyebrow">Command & event log</p>
           <h2>Trace every payload</h2>
         </div>
-        <button class="ghost close-log" onclick={() => (logDrawerOpen = false)}
-          >Close</button
-        >
+        <button class="ghost close-log" onclick={() => (logDrawerOpen = false)}>Close</button>
       </div>
 
       <div class="log-scroll">
         {#if logEntries.length}
           <ul>
-            {#each logEntries as entry}
+            {#each logEntries as entry (entry.ts)}
               <li class={`log ${entry.intent}`}>
                 <div class="log-head">
                   <span>{entry.ts}</span>
@@ -806,15 +737,11 @@
             {/each}
           </ul>
         {:else}
-          <p class="muted">
-            Commands will appear here as you interact with the UI.
-          </p>
+          <p class="muted">Commands will appear here as you interact with the UI.</p>
         {/if}
       </div>
     </aside>
 
-    <button class="log-toggle ghost" onclick={() => (logDrawerOpen = true)}
-      >View log</button
-    >
+    <button class="log-toggle ghost" onclick={() => (logDrawerOpen = true)}>View log</button>
   </div>
 </main>
