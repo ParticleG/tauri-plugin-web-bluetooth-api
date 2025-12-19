@@ -23,7 +23,8 @@
     "lint": "pnpm exec eslint guest-js --ext .ts",
     "lint:fix": "pnpm exec eslint guest-js --ext .ts --fix",
     "release": "tsdown",
-    "example:dev": "pnpm release && pnpm --dir ./examples/tauri-app dev"
+    "example:dev": "pnpm release && pnpm --dir ./examples/tauri-app dev",
+    "example:lint": "pnpm release && pnpm --dir ./examples/tauri-app lint"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.9.0"
