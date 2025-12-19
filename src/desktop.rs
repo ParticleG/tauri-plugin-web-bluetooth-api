@@ -21,7 +21,7 @@ use tauri::{
   async_runtime::{self, JoinHandle, Mutex, RwLock},
   http::{header::CONTENT_TYPE, Response, StatusCode},
   plugin::{Builder as PluginBuilder, PluginApi},
-  AppHandle, Emitter, Listener, Runtime, Url, WebviewUrl, WebviewWindowBuilder,
+  AppHandle, Emitter, Listener, Runtime, Url, WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
 use tokio::{
   sync::oneshot,
@@ -188,6 +188,8 @@ impl<R: Runtime> DeviceSelectionHandler<R> for NativeDialogSelectionHandler {
       let window = match WebviewWindowBuilder::new(&app, window_label.clone(), page_url)
         .title(SELECTION_WINDOW_TITLE)
         .inner_size(420.0, 520.0)
+        .decorations(false)
+        .always_on_top(true)
         .resizable(false)
         .visible(true)
         .build()
@@ -198,6 +200,15 @@ impl<R: Runtime> DeviceSelectionHandler<R> for NativeDialogSelectionHandler {
           return Err(err.into());
         }
       };
+
+      // Ensure closing the selector window is treated as an explicit cancel
+      let selection_event_on_close = event_name.clone();
+      let app_on_close = app.clone();
+      window.on_window_event(move |event| {
+        if let WindowEvent::Destroyed = event {
+          let _ = app_on_close.emit(&selection_event_on_close, SelectionEventPayload { device_id: None });
+        }
+      });
 
       let selection = match timeout(timeout_duration, rx).await {
         Ok(Ok(value)) => value,
@@ -303,12 +314,15 @@ fn build_selection_window_url<R: Runtime>(
       }}
       body {{
         margin: 0;
+        min-height: 100vh;
       }}
       .container {{
         padding: 24px;
         display: flex;
         flex-direction: column;
         gap: 16px;
+        min-height: 100vh;
+        box-sizing: border-box;
       }}
       h1 {{
         font-size: 18px;
@@ -350,6 +364,9 @@ fn build_selection_window_url<R: Runtime>(
         display: flex;
         flex-direction: column;
         gap: 8px;
+        min-height: 140px;
+        max-height: calc(100vh - 220px);
+        overflow: auto;
       }}
       .device {{
         border: 1px solid #d0d5dd;
@@ -373,13 +390,23 @@ fn build_selection_window_url<R: Runtime>(
         font-size: 12px;
         color: #667085;
       }}
+      .actions {{
+        position: sticky;
+        bottom: 0;
+        background: linear-gradient(180deg, rgba(244,245,247,0) 0%, #f4f5f7 30%);
+        padding-top: 8px;
+        padding-bottom: 4px;
+      }}
       #cancel-btn {{
-        border: none;
-        background: transparent;
+        border: 1px solid #d0d5dd;
+        border-radius: 8px;
+        background: #fff;
         color: #0082f6;
         font-weight: 600;
         cursor: pointer;
-        padding: 8px;
+        padding: 10px 12px;
+        width: 100%;
+        text-align: center;
       }}
       .empty {{
         padding: 16px;
@@ -414,7 +441,9 @@ fn build_selection_window_url<R: Runtime>(
         </div>
       </div>
       <div id="device-list" class="device-list"></div>
-      <button id="cancel-btn" type="button">Cancel</button>
+      <div class="actions">
+        <button id="cancel-btn" type="button">Cancel</button>
+      </div>
     </div>
     <script>
       const DEVICES = {devices};
