@@ -724,7 +724,7 @@
       <div class="log-scroll">
         {#if logEntries.length}
           <ul>
-            {#each logEntries as entry (entry.ts)}
+            {#each logEntries as entry (entry.id)}
               <li class={`log ${entry.intent}`}>
                 <div class="log-head">
                   <span>{entry.ts}</span>
